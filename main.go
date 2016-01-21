@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	uuidPath       = "uuid"
+	uuidPath       = "/uuid/"
 	databaseName   = "uuidService"
 	collectionName = "uuids"
 )
@@ -31,11 +31,6 @@ type UUID struct {
 type UUIDController struct {
 	session *mgo.Session
 	sync.RWMutex
-}
-
-// UUIDPost is the format of a POST to the uuid endpoint
-type UUIDPost struct {
-	Key string `json:"key"`
 }
 
 func newUUIDController(s *mgo.Session) *UUIDController {
@@ -72,46 +67,38 @@ func uuidHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	uc := newUUIDController(s)
 	var u *UUID
-	var key string
+	key := r.URL.Path[len(uuidPath):]
+	// TODO: validate key?
+	httpStatus := http.StatusOK
+	u, err = uc.getUUID(key)
+	// TODO: re-work GET/PUT logic.
 	switch r.Method {
 	case "GET":
-		key = r.URL.Path[len("/"+uuidPath+"/"):]
-		// TODO: validate key?
-		u, err = uc.getUUID(key)
 		if err != nil {
 			http.NotFound(w, r)
 			return
 		}
-	case "POST":
-		var p UUIDPost
-		if err = json.NewDecoder(r.Body).Decode(&p); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		key = p.Key
-		// TODO: validate key?
-		// Check if uuid exists.
-		u, err = uc.getUUID(key)
+	case "PUT":
 		if u.Key != key {
 			u, err = uc.createUUID(key)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+			httpStatus = http.StatusCreated
 		}
 	default:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(httpStatus)
 	if err := json.NewEncoder(w).Encode(u); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func main() {
-	http.HandleFunc("/"+uuidPath, uuidHandler)
-	http.HandleFunc("/"+uuidPath+"/", uuidHandler)
+	http.HandleFunc(uuidPath, uuidHandler)
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
 }

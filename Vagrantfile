@@ -13,6 +13,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.provision "shell", inline: <<-SHELL
     docker run --name uuid-service-mongo \
+      --restart=always \
       -d \
       mongo
     cd /home/core/uuid-service
@@ -22,6 +23,7 @@ Vagrant.configure(2) do |config|
       -e PORT="8080" \
       -p 8080:8080 \
       --link uuid-service-mongo:mongo \
+      --restart=always \
       -d \
       uuid-service-golang
   SHELL
