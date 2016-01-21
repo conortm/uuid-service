@@ -19,6 +19,8 @@ const (
 	collectionName = "uuids"
 )
 
+var databaseURL = "mongodb://mongo"
+
 // UUID is a holder for uuids.
 type UUID struct {
 	ID      bson.ObjectId `json:"id" bson:"_id"`
@@ -59,7 +61,7 @@ func (uc *UUIDController) getUUID(key string) (*UUID, error) {
 }
 
 func uuidHandler(w http.ResponseWriter, r *http.Request) {
-	s, err := mgo.Dial(os.Getenv("MONGO_URL"))
+	s, err := mgo.Dial(databaseURL)
 	defer s.Close()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -99,6 +101,10 @@ func uuidHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	envDatabaseURL := os.Getenv("DATABASE_URL")
+	if len(envDatabaseURL) > 0 {
+		databaseURL = envDatabaseURL
+	}
 	http.HandleFunc(uuidPath, uuidHandler)
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
+	log.Fatal(http.ListenAndServe(":80", nil))
 }
