@@ -21,43 +21,41 @@ const (
 
 var databaseURL = "mongodb://mongo"
 
-// UUID is a holder for uuids.
-type UUID struct {
+type document struct {
 	ID      bson.ObjectId `json:"id" bson:"_id"`
 	Key     string        `json:"key" bson:"key"`
 	UUID    string        `json:"uuid" bson:"uuid"`
 	Created time.Time     `json:"created" bson:"created"`
 }
 
-// UUIDController controls UUIDs.
-type UUIDController struct {
+type documentController struct {
 	session *mgo.Session
 	sync.RWMutex
 }
 
-func newUUIDController(s *mgo.Session) *UUIDController {
-	return &UUIDController{session: s}
+func newDocumentController(s *mgo.Session) *documentController {
+	return &documentController{session: s}
 }
 
-func (uc *UUIDController) createUUID(key string) (*UUID, error) {
-	uc.Lock()
-	defer uc.Unlock()
-	u := &UUID{
+func (dc *documentController) createDocument(key string) (*document, error) {
+	dc.Lock()
+	defer dc.Unlock()
+	d := &document{
 		ID:      bson.NewObjectId(),
 		Key:     key,
 		UUID:    uuid.New(),
 		Created: time.Now(),
 	}
-	err := uc.session.DB(databaseName).C(collectionName).Insert(u)
-	return u, err
+	err := dc.session.DB(databaseName).C(collectionName).Insert(d)
+	return d, err
 }
 
-func (uc *UUIDController) getUUID(key string) (*UUID, error) {
-	uc.RLock()
-	defer uc.RUnlock()
-	u := &UUID{}
-	err := uc.session.DB(databaseName).C(collectionName).Find(bson.M{"key": key}).One(u)
-	return u, err
+func (dc *documentController) getDocument(key string) (*document, error) {
+	dc.RLock()
+	defer dc.RUnlock()
+	d := &document{}
+	err := dc.session.DB(databaseName).C(collectionName).Find(bson.M{"key": key}).One(d)
+	return d, err
 }
 
 func uuidHandler(w http.ResponseWriter, r *http.Request) {
@@ -67,12 +65,12 @@ func uuidHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	uc := newUUIDController(s)
-	var u *UUID
+	dc := newDocumentController(s)
+	var d *document
 	key := r.URL.Path[len(uuidPath):]
 	// TODO: validate key?
 	httpStatus := http.StatusOK
-	u, err = uc.getUUID(key)
+	d, err = dc.getDocument(key)
 	// TODO: re-work GET/PUT logic.
 	switch r.Method {
 	case "GET":
@@ -81,8 +79,8 @@ func uuidHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "PUT":
-		if u.Key != key {
-			u, err = uc.createUUID(key)
+		if d.Key != key {
+			d, err = dc.createDocument(key)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -95,7 +93,7 @@ func uuidHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)
-	if err := json.NewEncoder(w).Encode(u); err != nil {
+	if err := json.NewEncoder(w).Encode(d); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -106,5 +104,5 @@ func main() {
 		databaseURL = envDatabaseURL
 	}
 	http.HandleFunc(uuidPath, uuidHandler)
-	log.Fatal(http.ListenAndServe(":80", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
