@@ -1,4 +1,4 @@
-# UUID Service
+# UUID Service [![Build Status](https://img.shields.io/travis/conortm/uuid-service.svg)](https://travis-ci.org/conortm/uuid-service)
 
 A simple service for creating & getting UUIDs, provided a key.
 
