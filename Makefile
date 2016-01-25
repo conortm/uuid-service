@@ -7,4 +7,4 @@ test:
 	go test
 
 travis:
-	$(HOME)/gopath/bin/goveralls -service=travis-ci
+	go test -v ./...
