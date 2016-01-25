@@ -13,96 +13,102 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const (
-	uuidPath       = "/uuid/"
-	databaseName   = "uuidService"
-	collectionName = "uuids"
-)
+const uuidPath = "/uuid/"
 
-var databaseURL = "mongodb://mongo"
-
-type document struct {
+type uuidDocument struct {
 	ID      bson.ObjectId `json:"id" bson:"_id"`
 	Key     string        `json:"key" bson:"key"`
 	UUID    string        `json:"uuid" bson:"uuid"`
 	Created time.Time     `json:"created" bson:"created"`
 }
 
-type documentController struct {
-	session *mgo.Session
+type database interface {
+	insert(u *uuidDocument) error
+	get(key string, u *uuidDocument) error
+}
+
+type mongoDatabase struct {
+	c *mgo.Collection
 	sync.RWMutex
 }
 
-func newDocumentController(s *mgo.Session) *documentController {
-	return &documentController{session: s}
+func newMongoDatabase(s *mgo.Session) *mongoDatabase {
+	return &mongoDatabase{c: s.DB("uuidService").C("uuids")}
 }
 
-func (dc *documentController) createDocument(key string) (*document, error) {
-	dc.Lock()
-	defer dc.Unlock()
-	d := &document{
-		ID:      bson.NewObjectId(),
-		Key:     key,
-		UUID:    uuid.New(),
-		Created: time.Now(),
-	}
-	err := dc.session.DB(databaseName).C(collectionName).Insert(d)
-	return d, err
+func (mdb *mongoDatabase) insert(u *uuidDocument) error {
+	mdb.Lock()
+	defer mdb.Unlock()
+	return mdb.c.Insert(u)
 }
 
-func (dc *documentController) getDocument(key string) (*document, error) {
-	dc.RLock()
-	defer dc.RUnlock()
-	d := &document{}
-	err := dc.session.DB(databaseName).C(collectionName).Find(bson.M{"key": key}).One(d)
-	return d, err
+func (mdb *mongoDatabase) get(key string, u *uuidDocument) error {
+	mdb.RLock()
+	defer mdb.RUnlock()
+	return mdb.c.Find(bson.M{"key": key}).One(u)
 }
 
-func uuidHandler(w http.ResponseWriter, r *http.Request) {
-	s, err := mgo.Dial(databaseURL)
-	defer s.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	dc := newDocumentController(s)
-	var d *document
-	key := r.URL.Path[len(uuidPath):]
-	// TODO: validate key?
-	httpStatus := http.StatusOK
-	d, err = dc.getDocument(key)
-	// TODO: re-work GET/PUT logic.
-	switch r.Method {
-	case "GET":
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-	case "PUT":
-		if d.Key != key {
-			d, err = dc.createDocument(key)
+func uuidHandler(db database) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Path[len(uuidPath):]
+		// TODO: validate key?
+		httpStatus := http.StatusOK
+		u := &uuidDocument{}
+		err := db.get(key, u)
+		// TODO: re-work GET/PUT logic.
+		switch r.Method {
+		case "GET":
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				if err.Error() == "not found" {
+					http.NotFound(w, r)
+				} else {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 				return
 			}
-			httpStatus = http.StatusCreated
+		case "PUT":
+			if u.Key != key {
+				u = &uuidDocument{
+					ID:      bson.NewObjectId(),
+					Key:     key,
+					UUID:    uuid.New(),
+					Created: time.Now(),
+				}
+				err = db.insert(u)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				httpStatus = http.StatusCreated
+			}
+		default:
+			http.Error(w, "invalid request method "+r.Method, http.StatusInternalServerError)
+			return
 		}
-	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(httpStatus)
-	if err := json.NewEncoder(w).Encode(d); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpStatus)
+		if err := json.NewEncoder(w).Encode(u); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
 }
 
-func main() {
+func getDatabaseURL() string {
+	databaseURL := "mongodb://mongo"
 	envDatabaseURL := os.Getenv("DATABASE_URL")
 	if len(envDatabaseURL) > 0 {
 		databaseURL = envDatabaseURL
 	}
-	http.HandleFunc(uuidPath, uuidHandler)
+	return databaseURL
+}
+
+func main() {
+	s, err := mgo.Dial(getDatabaseURL())
+	if err != nil {
+		panic(err)
+	}
+	defer s.Close()
+	db := newMongoDatabase(s)
+	http.HandleFunc(uuidPath, uuidHandler(db))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
