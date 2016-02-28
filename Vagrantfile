@@ -4,7 +4,7 @@
 Vagrant.configure(2) do |config|
   config.vm.box = "coreos-stable"
   config.vm.box_url = "http://stable.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json"
-  config.vm.network "forwarded_port", guest: 8080, host: 3000
+  config.vm.network "forwarded_port", guest: 80, host: 3000
   config.vm.synced_folder ".", "/home/core/uuid-service"
 
   config.vm.provider "virtualbox" do |vb|
@@ -18,7 +18,8 @@ Vagrant.configure(2) do |config|
       mongo
     (cd /home/core/uuid-service && docker build -t uuid-service-golang .)
     docker run --name uuid-service-golang \
-      -p 8080:8080 \
+      -p 80:80 \
+      -v /home/core/uuid-service:/go/src/app \
       --link uuid-service-mongo:mongo \
       --restart=always \
       -d \

@@ -1,2 +1,2 @@
-FROM golang:1.5.3-onbuild
-EXPOSE 8080
+FROM golang:1.6-onbuild
+EXPOSE 80
