@@ -1,5 +1,7 @@
 language: go
 sudo: false
+services:
+  - docker
 go:
   - 1.4.3
   - 1.5.3
@@ -11,8 +13,13 @@ before_install:
   - if ! go get github.com/golang/tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 install:
   - make install
+  - docker build -t uuid-service-golang .
+  - docker run --name uuid-service-mongo -d mongo
+  - docker run --name uuid-service-golang -p 80:80 --link uuid-service-mongo:mongo -d uuid-service-golang
+  - docker ps -a
 script:
   - make travis
+  - docker exec uuid-service-golang go test -v
 notifications:
   email: false
 before_deploy:
