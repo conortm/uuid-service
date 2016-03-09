@@ -46,4 +46,4 @@ vagrant up
 
 ## License
 
-[MIT](./LICENSE) © [Conor McNamara](http://conortm.io)
+[MIT](./LICENSE) © [Conor McNamara](http://conortm.io/)

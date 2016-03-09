@@ -1,17 +1,32 @@
 language: go
 sudo: false
 go:
-  - 1.4.2
-  - 1.5
+  - 1.4.3
+  - 1.5.3
   - 1.6
   - tip
-install:
-  - make install
-before_script:
+before_install:
   - go get github.com/axw/gocov/gocov
   - go get github.com/mattn/goveralls
   - if ! go get github.com/golang/tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+install:
+  - make install
 script:
   - make travis
 notifications:
   email: false
+before_deploy:
+  - make release
+deploy:
+  provider: releases
+  api_key:
+    secure: 0ejiJXIfOb0QW+gMcaa8ylWNNaEMURByAOSVnmF4O14yKT7tjD9EW8LJbRYTe8f+4LdUxuQnO1sq0t6aCxaPGH+/cZhaEs1iJn2ILFR/S3Xqhf5DBVheJatsjYG2intxWBMuet2Jx75Lwdd7uBmZUBZhfmBkGwtIIGtQYl8ooV4HzQRBK4rzIYUm1xmezr/d6Tu/Jg10yPrnCJJrEsL53zmy/3hZjdMfQlxecBQ2nzkagsEmg5GBsJcRZmH9scLSRsXFSnxSBatMd1xUvm42RW8sZcHRKkGIzx02SBWKkITGtj76zDJhniXTKf9ncoJ/rLG3E5S8A9ng3tL3mvpvaRVMsXoyytpO0sZUinxuQtB9+yoplTTJ9LUaZSASG1NSi8lWitdLjHA/b6+wLKzw6ZBzaL4ZpM8owoEHXZRhmahtfKY1PNcTlMkDbryRfEovB/eDQqAPGSMoOAfmOJ52jt6+EP/beFFClPBN7UpdAMrb7A9YAVhwoYboR7pCIa7zAEP3blN0dWJ+OI6a0syLdjxaX2Ohh4wySJdD0MuMiQGOebPNn0fEgI8WfPH9Po8XrE1I6ZGFHhmd43cQXZKRRR4hFWOK+Nt4cIxk071NbPZf7MKhSoo+1StCNHUObMoD5oweo1/RQEY8acyXQ2pkgMaTMifhpTxZReB0kFRWDpo=
+  file:
+    - release/uuid-service-linux-amd64
+    - release/uuid-service-linux-386
+    - release/uuid-service-linux-arm
+  skip_cleanup: true
+  on:
+    repo: conortm/uuid-service
+    tags: true
+    go: 1.6
