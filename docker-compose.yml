@@ -1,0 +1,18 @@
+version: "3"
+services:
+  uuid:
+    build: .
+    depends_on:
+     - mongo
+    environment:
+     - "DATABASE_URL=mongodb://mongo"
+    ports:
+     - "80:80"
+    volumes:
+     - .:/go/src/app
+  mongo:
+    image: mongo
+    volumes:
+     - mongo:/data/db
+volumes:
+  mongo:

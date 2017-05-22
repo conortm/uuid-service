@@ -1,6 +1,7 @@
 .git
 .gitignore
+.idea
 .travis.yml
 *.md
+docker-compose.yml
 Makefile
-Vagrantfile

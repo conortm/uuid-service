@@ -3,7 +3,7 @@
 A simple service for `PUT`ting & `GET`ting UUIDs, provided a key.
 
 This is a [Go](http://golang.org/) web service, backed by [MongoDB](https://www.mongodb.org/),
-running on [Docker](https://www.docker.com/), with [Vagrant](https://www.vagrantup.com/)
+running on [Docker](https://www.docker.com/), with [Compose](https://docs.docker.com/compose/)
 for local development.
 
 ## How to use this image
@@ -34,15 +34,15 @@ To get an existing `UUID`, run:
 curl -v http://my-uuid-service.com/uuid/my-key
 ```
 
-## Vagrant
+## Docker Compose
 
 Get a local instance up and running with:
 
 ```bash
-vagrant up
+docker-compose up -d
 ```
 
-**Note:** Substitute `my-uuid-service.com` above with `localhost:3000`.
+**Note:** Substitute `my-uuid-service.com` above with `localhost`.
 
 ## License
 
