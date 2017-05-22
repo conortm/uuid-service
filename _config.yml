@@ -1,0 +1,8 @@
+title: UUID Service
+description: A simple service for managing UUIDs
+google_analytics: UA-178558-22
+show_downloads: true
+theme: jekyll-theme-minimal
+
+gems:
+  - jekyll-mentions
